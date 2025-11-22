@@ -173,4 +173,12 @@
   .custom-scroll::-webkit-scrollbar-thumb:hover {
     background: #666;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

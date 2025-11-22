@@ -7,7 +7,7 @@ import {
   FormField,
   FormItem,
   FormControl,
-  FormMessage,
+  FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,14 @@ type FormValues = {
   email: string;
 };
 
+const inputs = [
+  "@gmail.com",
+  "@hotmail.com",
+  "@yahoo.com",
+  "@outlook.com",
+  "@icloud.com"
+];
+
 export default function SignUpField() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -25,7 +33,7 @@ export default function SignUpField() {
 
   const form = useForm<FormValues>({
     defaultValues: { email: savedEmail || "" }, // ✅ Initialize from Redux
-    mode: "onSubmit",
+    mode: "onSubmit"
   });
 
   const { watch, reset, trigger, handleSubmit } = form;
@@ -64,8 +72,8 @@ export default function SignUpField() {
             required: "This field is required",
             pattern: {
               value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-              message: "Email format invalid",
-            },
+              message: "Email format invalid"
+            }
           }}
           render={({ field, fieldState }) => (
             <FormItem className="flex flex-col">
@@ -99,6 +107,54 @@ export default function SignUpField() {
             </FormItem>
           )}
         />
+
+        <div
+          className="lg:hidden flex gap-2 overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing"
+          onMouseDown={(e) => {
+            const container = e.currentTarget;
+            const startX = e.pageX - container.offsetLeft;
+            const scrollLeft = container.scrollLeft;
+
+            const onMouseMove = (moveEvent: MouseEvent) => {
+              const x = moveEvent.pageX - container.offsetLeft;
+              const walk = (x - startX) * 1.5;
+              container.scrollLeft = scrollLeft - walk;
+            };
+
+            const onMouseUp = () => {
+              window.removeEventListener("mousemove", onMouseMove);
+              window.removeEventListener("mouseup", onMouseUp);
+            };
+
+            window.addEventListener("mousemove", onMouseMove);
+            window.addEventListener("mouseup", onMouseUp);
+          }}
+        >
+          {inputs.map((input, index) => (
+            <p
+              key={index}
+              onClick={() => {
+                const current = form.getValues("email") || "";
+                // If user typed "example" → becomes "example@gmail.com"
+                // If already has "@" → replace domain only
+                if (current.includes("@")) {
+                  const prefix = current.split("@")[0];
+                  form.setValue("email", prefix + input, {
+                    shouldValidate: true
+                  });
+                } else {
+                  form.setValue("email", current + input, {
+                    shouldValidate: true
+                  });
+                }
+                trigger("email");
+              }}
+              className="px-2 py-1 border border-white rounded-full text-white text-sm whitespace-nowrap select-none"
+            >
+              {input}
+            </p>
+          ))}
+        </div>
 
         <button
           type="submit"
