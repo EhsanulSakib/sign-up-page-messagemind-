@@ -1,12 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { FieldError } from "react-hook-form";
 
 export default function CountryCodeSelect({
   value,
+  error,
   onChange,
   countries
 }: {
   value: string | undefined;
+  error: FieldError | undefined;
   onChange: (value: string) => void;
   countries: { phoneCode: string; name: string; countryCode: string }[];
 }) {
@@ -30,7 +33,9 @@ export default function CountryCodeSelect({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full rounded-md border border-gray-700 dark:bg-[#1F1F1F] px-3 py-3 text-left flex items-center justify-between"
+        className={`w-full rounded-md border ${
+          error ? "border-red-600" : "border-gray-700 hover:border-gray-400"
+        } dark:bg-[#1F1F1F] px-3 py-3 text-left flex items-center justify-between cursor-pointer`}
       >
         {/* Only show phoneCode */}
         <span>{value || "+00"}</span>
@@ -48,7 +53,7 @@ export default function CountryCodeSelect({
 
       {/* DROPDOWN OPTIONS */}
       {open && (
-        <div className="absolute z-20 w-96 mt-2 max-h-72 overflow-auto rounded-md border border-gray-700 dark:bg-[#1F1F1F] shadow-lg custom-scroll">
+        <div className="absolute z-20 lg:w-full max-w-[420px] mt-2 max-h-72 overflow-auto rounded-md border border-gray-700 dark:bg-[#1F1F1F] shadow-lg custom-scroll">
           {countries.map((c) => (
             <div
               key={c.countryCode}

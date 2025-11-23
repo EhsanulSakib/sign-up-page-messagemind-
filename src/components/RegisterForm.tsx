@@ -188,59 +188,66 @@ export default function RegisterForm() {
 
   // Watch phone input and auto-detect country from typed number
   const phoneInput = watch("phone");
-  const selectedCountryCode = watch("countryCode");
+  // const selectedCountryCode = watch("countryCode");
 
   // Watch phone input and auto-detect country from typed number
   useEffect(() => {
-    if (!phoneInput) return;
+    if (!phoneInput || !watch("countryCode")) return;
 
-    const clean = phoneInput.replace(/[^\d+]/g, "");
+    const input = phoneInput.trim();
+    const clean = input.replace(/[^\d+]/g, "");
+
+    // Only process if it starts with +
     if (!clean.startsWith("+")) return;
 
+    const currentCountryCode = watch("countryCode") as string; // e.g. "+880"
+
+    // Always check if the input starts with the CURRENTLY selected country code
+    if (clean.startsWith(currentCountryCode)) {
+      const nationalNumber = clean.slice(currentCountryCode.length);
+
+      // Only update if we're actually stripping something (avoid infinite loop)
+      if (nationalNumber !== phoneInput && nationalNumber !== clean) {
+        setValue("phone", nationalNumber, { shouldValidate: true });
+        trigger("phone");
+        return; // early exit – we handled it
+      }
+    }
+
+    // Optional: Also detect other countries (fallback for when user types different code)
     let matchedCountry = null;
     for (const c of countriesList) {
-      const code = c.phoneCode;
-      if (clean.startsWith(code)) {
-        if (!matchedCountry || code.length > matchedCountry.phoneCode.length) {
+      if (clean.startsWith(c.phoneCode)) {
+        if (
+          !matchedCountry ||
+          c.phoneCode.length > matchedCountry.phoneCode.length
+        ) {
           matchedCountry = c;
         }
       }
     }
 
-    if (matchedCountry) {
+    if (matchedCountry && matchedCountry.phoneCode !== currentCountryCode) {
       const code = matchedCountry.phoneCode;
+      const nationalNumber = clean.slice(code.length);
 
-      if (selectedCountryCode !== code) {
-        setValue("countryCode", code);
-        setValue("country", matchedCountry.countryCode);
+      setValue("countryCode", code);
+      setValue("country", matchedCountry.countryCode);
+      setValue("phone", nationalNumber, { shouldValidate: true });
 
-        // THIS IS THE KEY FIX:
-        // Remove the country calling code from the phone input
-        const nationalNumber = clean.slice(code.length); // Strip +880 → leaves 1865818118
-        setValue("phone", nationalNumber);
-        // Optional: if nationalNumber is empty, you can leave it blank or keep as-is
-
-        const tzList = ct.getTimezonesForCountry(matchedCountry.countryCode);
-        if (tzList?.length) {
-          const currentTz = watch("timezone");
-          const stillValid = tzList.some((tz) => tz.name === currentTz);
-          if (!stillValid) {
-            setValue("timezone", tzList[0].name);
-          }
+      // Update timezone
+      const tzList = ct.getTimezonesForCountry(matchedCountry.countryCode);
+      if (tzList?.length) {
+        const currentTz = watch("timezone");
+        const stillValid = tzList.some((tz) => tz.name === currentTz);
+        if (!stillValid) {
+          setValue("timezone", tzList[0].name);
         }
-
-        trigger("countryCode");
-        trigger("phone"); // revalidate with cleaned number
       }
+
+      trigger("phone");
     }
-  }, [
-    phoneInput,
-    selectedCountryCode,
-    countriesList,
-    setValue,
-    trigger,
-    watch
-  ]);
+  }, [phoneInput, countriesList, setValue, trigger, watch]);
 
   const onSubmit = async (data: FormValues) => {
     const fullPhone = `${data.countryCode}${data.phone}`.trim();
@@ -270,7 +277,11 @@ export default function RegisterForm() {
           className={`
             dark-input
             rounded-md px-4 py-6 outline-none transition-all
-            border-gray-700 hover:border-gray-400
+            ${
+              errors.firstName
+                ? "border-red-600"
+                : "border-gray-700 hover:border-gray-400"
+            }
             focus:ring-0
           `}
           placeholder="Enter your first name"
@@ -307,12 +318,16 @@ export default function RegisterForm() {
           <Input
             type={showPassword ? "text" : "password"}
             placeholder="Enter a password"
-            className="
-    dark-input
-    rounded-md px-4 py-6 outline-none transition-all
-    border-gray-700 hover:border-gray-400
-    focus:ring-0
-  "
+            className={`
+              dark-input
+              rounded-md px-4 py-6 outline-none transition-all
+            ${
+              errors.password
+                ? "border-red-600"
+                : "border-gray-700 hover:border-gray-400"
+            }
+              focus:ring-0
+            `}
             {...register("password", {
               required: "Password is required",
               validate: {
@@ -410,6 +425,7 @@ export default function RegisterForm() {
         <div className="flex gap-3">
           <CountryCodeSelect
             value={watch("countryCode")}
+            error={errors.phone}
             onChange={(value) => {
               setValue("countryCode", value);
 
@@ -424,7 +440,11 @@ export default function RegisterForm() {
           {/* National Phone Number */}
           <Input
             placeholder="Enter your mobile number"
-            className="flex-1 dark-input rounded-md px-4 py-6 border-gray-700 hover:border-gray-400 focus:ring-0"
+            className={`flex-1 dark-input rounded-md px-4 py-6 ${
+              errors.phone
+                ? "border-red-600"
+                : "border-gray-700 hover:border-gray-400"
+            } focus:ring-0`}
             {...register("phone", {
               required: "Mobile number is required",
               validate: (value) => {
@@ -496,7 +516,7 @@ export default function RegisterForm() {
             <button
               type="button"
               onClick={() => setCountryEditable(true)}
-              className="absolute right-3 top-4 h-6 w-fit bg-[#1f1f1f] group-hover:bg-[#262626] text-text-primary hover:text-text-primary-hover text-xs cursor-pointer"
+              className="absolute right-3 top-4 h-fit w-fit bg-[#1f1f1f] group-hover:bg-[#262626] hover:bg-[#1f1f1f] text-text-primary hover:text-text-primary-hover text-xs cursor-pointer"
             >
               Edit
             </button>

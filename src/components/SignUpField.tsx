@@ -32,33 +32,20 @@ export default function SignUpField() {
   const savedEmail = useAppSelector((state) => state.auth.email);
 
   const form = useForm<FormValues>({
-    defaultValues: { email: savedEmail || "" }, // ✅ Initialize from Redux
-    mode: "onSubmit"
+    defaultValues: { email: savedEmail || "" },
+    mode: "onSubmit",           // ← already correct
+    reValidateMode: "onSubmit"  // ← ensure no re-validation on change
   });
 
-  const { watch, reset, trigger, handleSubmit } = form;
+  const { reset, handleSubmit } = form;
 
-  // ✅ Keep input synced if Redux email changes
+  // Keep input synced if Redux email changes
   useEffect(() => {
     reset({ email: savedEmail || "" });
   }, [savedEmail, reset]);
 
-  const emailTypedValue = watch("email");
-  const [hasBlurredOnce, setHasBlurredOnce] = useState(false);
-  const [hasTyped, setHasTyped] = useState(false);
-
-  useEffect(() => {
-    if (emailTypedValue.length > 0) setHasTyped(true);
-  }, [emailTypedValue]);
-
-  const shouldWatch = hasTyped && hasBlurredOnce;
-
-  useEffect(() => {
-    if (shouldWatch) trigger("email");
-  }, [emailTypedValue, shouldWatch, trigger]);
-
   const onSubmit = (data: FormValues) => {
-    dispatch(setEmail(data.email)); // Save to Redux
+    dispatch(setEmail(data.email));
     router.push("/sign-up");
   };
 
@@ -80,6 +67,13 @@ export default function SignUpField() {
               <FormControl>
                 <Input
                   {...field}
+                  // Clear error as soon as user types again
+                  onChange={(e) => {
+                    field.onChange(e);
+                    if (fieldState.error) {
+                      form.clearErrors("email");
+                    }
+                  }}
                   className={`
                     dark-input
                     rounded-md px-4 py-6 outline-none transition-all
@@ -93,13 +87,6 @@ export default function SignUpField() {
                   `}
                   placeholder="Enter your email address"
                   type="email"
-                  onBlur={() => {
-                    field.onBlur();
-                    if (hasTyped) {
-                      setHasBlurredOnce(true);
-                      trigger("email");
-                    }
-                  }}
                 />
               </FormControl>
 
@@ -135,19 +122,18 @@ export default function SignUpField() {
               key={index}
               onClick={() => {
                 const current = form.getValues("email") || "";
-                // If user typed "example" → becomes "example@gmail.com"
-                // If already has "@" → replace domain only
                 if (current.includes("@")) {
                   const prefix = current.split("@")[0];
                   form.setValue("email", prefix + input, {
-                    shouldValidate: true
+                    shouldValidate: false
                   });
                 } else {
                   form.setValue("email", current + input, {
-                    shouldValidate: true
+                    shouldValidate: false
                   });
                 }
-                trigger("email");
+                // Clear any existing error when user picks a domain
+                form.clearErrors("email");
               }}
               className="px-2 py-1 border border-white rounded-full text-white text-sm whitespace-nowrap select-none"
             >

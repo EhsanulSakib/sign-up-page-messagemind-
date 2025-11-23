@@ -13,7 +13,7 @@ const page = () => {
         <BackButton />
         <section className="w-full max-w-[420px] px-4 lg:px-0 space-y-6">
           <div className="mb-10 flex flex-col items-center">
-            <h1 className="text-2xl font-semibold leading-tight">
+            <h1 className="text-2xl text-center font-semibold leading-tight">
               Create a professional account
             </h1>
             <SubHeading />
